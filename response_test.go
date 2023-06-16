@@ -209,4 +209,25 @@ func TestResponses(t *testing.T) {
 
 		})
 	})
+
+	t.Run(`Triggered Times`, func(t *testing.T) {
+		Catcher.Logging = true
+		fr := Catcher.Reset().NewMock().WithQuery(`SELECT name, age FROM users WHERE`).WithReply(commonReply).WithExpectedTriggerTimes(1)
+		t.Log("result", fr)
+		result := GetUsers(DB)
+		t.Log("result", result)
+		if len(result) != 1 {
+			t.Fatalf("Returned sets is not equal to 1. Received %d", len(result))
+		}
+		if result[0]["name"] != "FirstLast" {
+			t.Errorf("Name is not equal. Got %v", result[0]["name"])
+		}
+
+		// the second time
+		GetUsers(DB)
+		meet, _ := Catcher.ExpectationOfTriggeredTimesIsMeet()
+		if meet {
+			t.Errorf("Should not be meet because of the second query is triggered too")
+		}
+	})
 }

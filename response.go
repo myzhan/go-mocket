@@ -59,6 +59,7 @@ func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *Fak
 	for _, resp := range mc.Mocks {
 		if resp.IsMatch(query, args) {
 			resp.MarkAsTriggered()
+			resp.TriggeredTimes++
 			return resp
 		}
 	}
@@ -83,6 +84,24 @@ func (mc *MockCatcher) NewMock() *FakeResponse {
 	return fr
 }
 
+// ExpectationOfTriggeredTimesIsMeet checks the triggered times are as expected
+func (mc *MockCatcher) ExpectationOfTriggeredTimesIsMeet() (bool, []string) {
+	mc.mu.Lock()
+	defer mc.mu.Unlock()
+
+	msgs := []string{}
+	for _, resp := range mc.Mocks {
+		if resp.ExpectedTriggeredTimes == 0 {
+			continue
+		}
+		if resp.ExpectedTriggeredTimes != resp.TriggeredTimes {
+			msgs = append(msgs, fmt.Sprintf("We are expecting %s to be triggered %d times, but got %d", resp.Pattern, resp.ExpectedTriggeredTimes, resp.TriggeredTimes))
+		}
+	}
+
+	return len(msgs) == 0, msgs
+}
+
 // Reset removes all Mocks to start process again
 func (mc *MockCatcher) Reset() *MockCatcher {
 	mc.mu.Lock()
@@ -99,17 +118,19 @@ type Exceptions struct {
 
 // FakeResponse represents mock of response with holding all required values to return mocked response
 type FakeResponse struct {
-	Pattern      string                            // SQL query pattern to match with
-	Strict       bool                              // Strict SQL query pattern comparison or by strings.Contains()
-	Args         []interface{}                     // List args to be matched with
-	Response     []map[string]interface{}          // Array of rows to be parsed as result
-	Once         bool                              // To trigger only once
-	Triggered    bool                              // If it was triggered at least once
-	Callback     func(string, []driver.NamedValue) // Callback to execute when response triggered
-	RowsAffected int64                             // Defines affected rows count
-	LastInsertID int64                             // ID to be returned for INSERT queries
-	Error        error                             // Any type of error which could happen dur
-	mu           sync.Mutex                        // Used to lock concurrent access to variables
+	Pattern                string                            // SQL query pattern to match with
+	Strict                 bool                              // Strict SQL query pattern comparison or by strings.Contains()
+	Args                   []interface{}                     // List args to be matched with
+	Response               []map[string]interface{}          // Array of rows to be parsed as result
+	Once                   bool                              // To trigger only once
+	Triggered              bool                              // If it was triggered at least once
+	ExpectedTriggeredTimes uint32                            // How many times we are expecting to be triggerd
+	TriggeredTimes         uint32                            // How many times that has been triggerd
+	Callback               func(string, []driver.NamedValue) // Callback to execute when response triggered
+	RowsAffected           int64                             // Defines affected rows count
+	LastInsertID           int64                             // ID to be returned for INSERT queries
+	Error                  error                             // Any type of error which could happen dur
+	mu                     sync.Mutex                        // Used to lock concurrent access to variables
 	*Exceptions
 }
 
@@ -129,8 +150,8 @@ func (fr *FakeResponse) isArgsMatch(args []driver.NamedValue) bool {
 // isQueryMatch returns true if searched query is matched FakeResponse Pattern
 func (fr *FakeResponse) isQueryMatch(query string) bool {
 	fr.mu.Lock()
-        defer fr.mu.Unlock()
-	
+	defer fr.mu.Unlock()
+
 	if fr.Pattern == "" {
 		return true
 	}
@@ -241,6 +262,13 @@ func (fr *FakeResponse) WithID(id int64) *FakeResponse {
 // example: WithError(sql.ErrNoRows)
 func (fr *FakeResponse) WithError(err error) *FakeResponse {
 	fr.Error = err
+	return fr
+}
+
+// WithExpectedTriggerTimes sets expected trigger times
+// example: WithExpectedTriggerTimes(uint32(2))
+func (fr *FakeResponse) WithExpectedTriggerTimes(expected uint32) *FakeResponse {
+	fr.ExpectedTriggeredTimes = expected
 	return fr
 }
 
