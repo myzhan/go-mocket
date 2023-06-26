@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -46,6 +47,9 @@ func (mc *MockCatcher) Register() {
 // Attach several mocks to MockCather. Could be useful to attach mocks from some factories of mocks
 func (mc *MockCatcher) Attach(fr []*FakeResponse) {
 	mc.Mocks = append(mc.Mocks, fr...)
+	sort.SliceStable(mc.Mocks, func(i, j int) bool {
+		return len(mc.Mocks[i].Pattern) < len(mc.Mocks[j].Pattern)
+	})
 }
 
 // FindResponse finds suitable response by provided
@@ -81,6 +85,9 @@ func (mc *MockCatcher) NewMock() *FakeResponse {
 	defer mc.mu.Unlock()
 	fr := &FakeResponse{Exceptions: &Exceptions{}, Response: make([]map[string]interface{}, 0)}
 	mc.Mocks = append(mc.Mocks, fr)
+	sort.SliceStable(mc.Mocks, func(i, j int) bool {
+		return len(mc.Mocks[i].Pattern) < len(mc.Mocks[j].Pattern)
+	})
 	return fr
 }
 

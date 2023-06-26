@@ -73,6 +73,7 @@ func TestResponses(t *testing.T) {
 	db, _ := sql.Open(DriverName, "connection_string") // Could be any connection string
 	DB = db
 	commonReply := []map[string]interface{}{{"name": "FirstLast", "age": "30"}}
+	commonReply2 := []map[string]interface{}{{"name": "FirstLast", "age": "50"}}
 
 	t.Run("Simple SELECT caught by query", func(t *testing.T) {
 		Catcher.Logging = true
@@ -85,6 +86,22 @@ func TestResponses(t *testing.T) {
 		}
 		if result[0]["name"] != "FirstLast" {
 			t.Errorf("Name is not equal. Got %v", result[0]["name"])
+		}
+	})
+
+	t.Run("Longest SELECT caught by query", func(t *testing.T) {
+		Catcher.Logging = true
+		fr := Catcher.Reset().NewMock().WithQuery(`SELECT name, age FROM users WHERE`).WithReply(commonReply)
+		t.Log("result", fr)
+		fr = Catcher.NewMock().WithQuery(`SELECT name, age FROM users WHERE age=27`).WithReply(commonReply2)
+		t.Log("result", fr)
+		result := GetUsers(DB)
+		t.Log("result", result)
+		if len(result) != 1 {
+			t.Fatalf("Returned sets is not equal to 1. Received %d", len(result))
+		}
+		if result[0]["age"] != "50" {
+			t.Errorf("Age is not equal. Got %v", result[0]["age"])
 		}
 	})
 
