@@ -290,10 +290,6 @@ var whitespaces = regexp.MustCompile(`\s+`)
 func normalize(origin string) string {
 	s := strings.TrimSpace(origin)
 	s = whitespaces.ReplaceAllString(s, " ")
-	if s != origin {
-		log.Printf("origin: %s", origin)
-		log.Printf("normalized: %s", s)
-	}
 	return s
 }
 
