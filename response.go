@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -46,7 +47,10 @@ func (mc *MockCatcher) Register() {
 
 // Attach several mocks to MockCather. Could be useful to attach mocks from some factories of mocks
 func (mc *MockCatcher) Attach(fr []*FakeResponse) {
-	mc.Mocks = append(mc.Mocks, fr...)
+	for _, r := range fr {
+		r.Pattern = normalize(r.Pattern)
+		mc.Mocks = append(mc.Mocks, r)
+	}
 	sort.SliceStable(mc.Mocks, func(i, j int) bool {
 		return len(mc.Mocks[i].Pattern) < len(mc.Mocks[j].Pattern)
 	})
@@ -56,12 +60,13 @@ func (mc *MockCatcher) Attach(fr []*FakeResponse) {
 func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *FakeResponse {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
+	new_query := normalize(query)
 	if mc.Logging {
-		log.Printf("mock_catcher: check query: %s", query)
+		log.Printf("mock_catcher: check query: %s", new_query)
 	}
 
 	for _, resp := range mc.Mocks {
-		if resp.IsMatch(query, args) {
+		if resp.IsMatch(new_query, args) {
 			resp.MarkAsTriggered()
 			resp.TriggeredTimes++
 			return resp
@@ -69,7 +74,7 @@ func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *Fak
 	}
 
 	if mc.PanicOnEmptyResponse {
-		panic(fmt.Sprintf("No responses matches query %s ", query))
+		panic(fmt.Sprintf("No responses matches query %s ", new_query))
 	}
 
 	// Let's have always dummy version of response
@@ -196,7 +201,7 @@ func (fr *FakeResponse) MarkAsTriggered() {
 func (fr *FakeResponse) WithQuery(query string) *FakeResponse {
 	fr.mu.Lock()
 	defer fr.mu.Unlock()
-	fr.Pattern = query
+	fr.Pattern = normalize(query)
 	return fr
 }
 
@@ -277,6 +282,19 @@ func (fr *FakeResponse) WithError(err error) *FakeResponse {
 func (fr *FakeResponse) WithExpectedTriggerTimes(expected uint32) *FakeResponse {
 	fr.ExpectedTriggeredTimes = expected
 	return fr
+}
+
+// Regexp to replace multiple spaces with single space
+var whitespaces = regexp.MustCompile(`\s+`)
+
+func normalize(origin string) string {
+	s := strings.TrimSpace(origin)
+	s = whitespaces.ReplaceAllString(s, " ")
+	if s != origin {
+		log.Printf("origin: %s", origin)
+		log.Printf("normalized: %s", s)
+	}
+	return s
 }
 
 func init() {

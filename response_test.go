@@ -11,7 +11,7 @@ var DB *sql.DB
 func GetUsers(db *sql.DB) []map[string]string {
 	var res []map[string]string
 	age := 27
-	rows, err := db.Query("SELECT name, age FROM users WHERE age=?", age)
+	rows, err := db.Query("SELECT name, age FROM users  WHERE age=?", age)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -77,16 +77,32 @@ func TestResponses(t *testing.T) {
 
 	t.Run("Simple SELECT caught by query", func(t *testing.T) {
 		Catcher.Logging = true
-		fr := Catcher.Reset().NewMock().WithQuery(`SELECT name, age FROM users WHERE`).WithReply(commonReply)
-		t.Log("result", fr)
-		result := GetUsers(DB)
-		t.Log("result", result)
-		if len(result) != 1 {
-			t.Fatalf("Returned sets is not equal to 1. Received %d", len(result))
-		}
-		if result[0]["name"] != "FirstLast" {
-			t.Errorf("Name is not equal. Got %v", result[0]["name"])
-		}
+
+		t.Run("Without spaces", func(t *testing.T) {
+			fr := Catcher.Reset().NewMock().WithQuery(`SELECT name, age FROM users WHERE`).WithReply(commonReply)
+			t.Log("result", fr)
+			result := GetUsers(DB)
+			t.Log("result", result)
+			if len(result) != 1 {
+				t.Fatalf("Returned sets is not equal to 1. Received %d", len(result))
+			}
+			if result[0]["name"] != "FirstLast" {
+				t.Errorf("Name is not equal. Got %v", result[0]["name"])
+			}
+		})
+
+		t.Run("Without spaces", func(t *testing.T) {
+			fr := Catcher.Reset().NewMock().WithQuery(` SELECT name,  age FROM users   WHERE `).WithReply(commonReply)
+			t.Log("result", fr)
+			result := GetUsers(DB)
+			t.Log("result", result)
+			if len(result) != 1 {
+				t.Fatalf("Returned sets is not equal to 1. Received %d", len(result))
+			}
+			if result[0]["name"] != "FirstLast" {
+				t.Errorf("Name is not equal. Got %v", result[0]["name"])
+			}
+		})
 	})
 
 	t.Run("Longest SELECT caught by query", func(t *testing.T) {
