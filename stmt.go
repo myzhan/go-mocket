@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"strings"
 )
 
 // FakeStmt  is implementation of Stmt sql interfcae
@@ -109,13 +108,7 @@ func (s *FakeStmt) QueryContext(ctx context.Context, args []driver.NamedValue) (
 		return nil, errClosed
 	}
 
-	if len(args) > 0 {
-		// Replace all "?" to "%v" and replace them with the values after
-		for i := 0; i < len(args); i++ {
-			s.q = strings.Replace(s.q, "?", "%v", 1)
-			s.q = fmt.Sprintf(s.q, args[i].Value)
-		}
-	}
+	s.q = completeStatement(s.q, args)
 
 	fResp := Catcher.FindResponse(s.q, args)
 

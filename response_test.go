@@ -263,4 +263,17 @@ func TestResponses(t *testing.T) {
 			t.Errorf("Should not be meet because of the second query is triggered too")
 		}
 	})
+
+	t.Run(`Capture all queries`, func(t *testing.T) {
+		Catcher.Logging = true
+		Catcher.Reset().NewMock().WithQuery(`SELECT name, age FROM users WHERE`).WithReply(commonReply)
+		GetUsers(DB)
+		GetUsers(DB)
+		expectedQuery := `SELECT name, age FROM users WHERE age=27`
+		_, times := Catcher.FindReceivedQuery(expectedQuery)
+		if times != 2 {
+			t.Errorf(`The query "SELECT name, age FROM users WHERE age=27" should be sent twice`)
+		}
+	})
+
 }

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -23,6 +22,7 @@ var Catcher *MockCatcher
 // MockCatcher is global entity to save all mocks aka FakeResponses
 type MockCatcher struct {
 	Mocks                []*FakeResponse // Slice of all mocks
+	ReceivedQueries      map[string]int  // All received queries
 	Logging              bool            // Do we need to log what we catching?
 	PanicOnEmptyResponse bool            // If not response matches - do we need to panic?
 	mu                   sync.Mutex
@@ -63,6 +63,13 @@ func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *Fak
 	new_query := normalize(query)
 	if mc.Logging {
 		log.Printf("mock_catcher: check query: %s", new_query)
+	}
+
+	query_with_args := completeStatement(new_query, args)
+	if times, ok := mc.ReceivedQueries[query_with_args]; ok {
+		mc.ReceivedQueries[query_with_args] = times + 1
+	} else {
+		mc.ReceivedQueries[query_with_args] = 1
 	}
 
 	for _, resp := range mc.Mocks {
@@ -117,11 +124,21 @@ func (mc *MockCatcher) ExpectationOfTriggeredTimesIsMeet() (bool, []string) {
 	return len(msgs) == 0, msgs
 }
 
+// FindReceivedQuery checks how many times the query has been sent
+func (mc *MockCatcher) FindReceivedQuery(query string) (ok bool, times int) {
+	if times, ok = mc.ReceivedQueries[query]; ok {
+		return ok, times
+	} else {
+		return ok, 0
+	}
+}
+
 // Reset removes all Mocks to start process again
 func (mc *MockCatcher) Reset() *MockCatcher {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 	mc.Mocks = make([]*FakeResponse, 0)
+	mc.ReceivedQueries = make(map[string]int)
 	return mc
 }
 
@@ -287,15 +304,8 @@ func (fr *FakeResponse) WithExpectedTriggerTimes(expected uint32) *FakeResponse 
 	return fr
 }
 
-// Regexp to replace multiple spaces with single space
-var whitespaces = regexp.MustCompile(`\s+`)
-
-func normalize(origin string) string {
-	s := strings.TrimSpace(origin)
-	s = whitespaces.ReplaceAllString(s, " ")
-	return s
-}
-
 func init() {
-	Catcher = &MockCatcher{}
+	Catcher = &MockCatcher{
+		ReceivedQueries: make(map[string]int),
+	}
 }
