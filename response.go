@@ -51,9 +51,6 @@ func (mc *MockCatcher) Attach(fr []*FakeResponse) {
 		r.Pattern = normalize(r.Pattern)
 		mc.Mocks = append(mc.Mocks, r)
 	}
-	sort.SliceStable(mc.Mocks, func(i, j int) bool {
-		return len(mc.Mocks[i].Pattern) < len(mc.Mocks[j].Pattern)
-	})
 }
 
 // FindResponse finds suitable response by provided
@@ -71,6 +68,10 @@ func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *Fak
 	} else {
 		mc.ReceivedQueries[query_with_args] = 1
 	}
+
+	sort.SliceStable(mc.Mocks, func(i, j int) bool {
+		return len(mc.Mocks[i].Pattern) > len(mc.Mocks[j].Pattern)
+	})
 
 	for _, resp := range mc.Mocks {
 		if resp.IsMatch(new_query, args) {
@@ -100,9 +101,6 @@ func (mc *MockCatcher) NewMock() *FakeResponse {
 	defer mc.mu.Unlock()
 	fr := &FakeResponse{Exceptions: &Exceptions{}, Response: make([]map[string]interface{}, 0)}
 	mc.Mocks = append(mc.Mocks, fr)
-	sort.SliceStable(mc.Mocks, func(i, j int) bool {
-		return len(mc.Mocks[i].Pattern) < len(mc.Mocks[j].Pattern)
-	})
 	return fr
 }
 

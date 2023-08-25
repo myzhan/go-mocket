@@ -107,10 +107,9 @@ func TestResponses(t *testing.T) {
 
 	t.Run("Longest SELECT caught by query", func(t *testing.T) {
 		Catcher.Logging = true
-		fr := Catcher.Reset().NewMock().WithQuery(`SELECT name, age FROM users WHERE`).WithReply(commonReply)
-		t.Log("result", fr)
-		fr = Catcher.NewMock().WithQuery(`SELECT name, age FROM users WHERE age=27`).WithReply(commonReply2)
-		t.Log("result", fr)
+		Catcher.Reset().NewMock().WithQuery(`SELECT name, age FROM users WHERE`).WithReply(commonReply)
+		Catcher.NewMock().WithQuery(`SELECT name, age FROM users WHERE age=`).WithReply(commonReply)
+		Catcher.NewMock().WithQuery(`SELECT name, age FROM users WHERE age=27`).WithReply(commonReply2)
 		result := GetUsers(DB)
 		t.Log("result", result)
 		if len(result) != 1 {
