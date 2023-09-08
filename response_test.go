@@ -120,6 +120,22 @@ func TestResponses(t *testing.T) {
 		}
 	})
 
+	t.Run("Max match priority caught by query", func(t *testing.T) {
+		Catcher.Logging = true
+		Catcher.Reset().NewMock().WithQuery(`SELECT name, age FROM users WHERE`).WithReply(commonReply)
+		Catcher.NewMock().WithQuery(`SELECT name, age FROM users WHERE age=27`).WithReply(commonReply).WithMatchPriority(1)
+		Catcher.NewMock().WithQuery(`SELECT name, age FROM users WHERE age=27`).WithReply(commonReply2).WithMatchPriority(2)
+		Catcher.NewMock().WithQuery(`SELECT name, age FROM users WHERE age=27 and name=makequerylonger`).WithReply(commonReply)
+		result := GetUsers(DB)
+		t.Log("result", result)
+		if len(result) != 1 {
+			t.Fatalf("Returned sets is not equal to 1. Received %d", len(result))
+		}
+		if result[0]["age"] != "50" {
+			t.Errorf("Age is not equal. Got %v", result[0]["age"])
+		}
+	})
+
 	t.Run("Simple SELECT caught by query in strict mode", func(t *testing.T) {
 		Catcher.Logging = false
 		Catcher.Reset().NewMock().WithQuery(`SELECT name, age FROM users`).StrictMatch().WithReply(commonReply)

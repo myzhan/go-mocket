@@ -67,13 +67,17 @@ func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *Fak
 	}
 
 	sort.SliceStable(mc.Mocks, func(i, j int) bool {
-		return len(mc.Mocks[i].Pattern) > len(mc.Mocks[j].Pattern)
+		if mc.Mocks[i].MatchPriority != mc.Mocks[j].MatchPriority {
+			return mc.Mocks[i].MatchPriority > mc.Mocks[j].MatchPriority
+		} else {
+			return len(mc.Mocks[i].Pattern) > len(mc.Mocks[j].Pattern)
+		}
 	})
 
 	for _, resp := range mc.Mocks {
 		if resp.IsMatch(new_query, args) {
 			if mc.Logging {
-				log.Printf("mock_catcher: query: %s matches mock {pattern: %s, args: %v}", new_query, resp.Pattern, resp.Args)
+				log.Printf("mock_catcher: [MATCHED QUERY]: %s matches mock {pattern: %s, args: %v}", new_query, resp.Pattern, resp.Args)
 			}
 			resp.MarkAsTriggered()
 			resp.TriggeredTimes++
@@ -82,7 +86,7 @@ func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *Fak
 	}
 
 	if mc.Logging {
-		log.Printf("mock_catcher: query: %s doesn't match anthing", new_query)
+		log.Printf("mock_catcher: [NO MATCHED QUERY]: %s doesn't match anthing", new_query)
 	}
 
 	if mc.PanicOnEmptyResponse {
@@ -150,6 +154,7 @@ type Exceptions struct {
 // FakeResponse represents mock of response with holding all required values to return mocked response
 type FakeResponse struct {
 	Pattern                string                            // SQL query pattern to match with
+	MatchPriority          int                               // MatchPriority defines priority of matching, higher value will be picked up first
 	Strict                 bool                              // Strict SQL query pattern comparison or by strings.Contains()
 	Args                   []interface{}                     // List args to be matched with
 	Response               []map[string]interface{}          // Array of rows to be parsed as result
@@ -300,6 +305,12 @@ func (fr *FakeResponse) WithError(err error) *FakeResponse {
 // example: WithExpectedTriggerTimes(uint32(2))
 func (fr *FakeResponse) WithExpectedTriggerTimes(expected uint32) *FakeResponse {
 	fr.ExpectedTriggeredTimes = expected
+	return fr
+}
+
+// WithMatchPriority sets priority
+func (fr *FakeResponse) WithMatchPriority(priority int) *FakeResponse {
+	fr.MatchPriority = priority
 	return fr
 }
 
