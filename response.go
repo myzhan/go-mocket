@@ -84,6 +84,10 @@ func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *Fak
 		}
 	}
 
+	if mc.Logging {
+		log.Printf("mock_catcher: query: %s doesn't match anthing", new_query)
+	}
+
 	if mc.PanicOnEmptyResponse {
 		panic(fmt.Sprintf("No responses matches query %s ", new_query))
 	}
