@@ -58,9 +58,6 @@ func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *Fak
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 	new_query := normalize(query)
-	if mc.Logging {
-		log.Printf("mock_catcher: check query: %s", new_query)
-	}
 
 	query_with_args := completeStatement(new_query, args)
 	if times, ok := mc.ReceivedQueries[query_with_args]; ok {
