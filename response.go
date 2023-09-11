@@ -16,6 +16,13 @@ const (
 	DriverName = "MOCK_FAKE_DRIVER"
 )
 
+const (
+	// Predefined match priority
+	GLOBAL = iota
+	TESTSUITE
+	TESTCASE
+)
+
 // Catcher is global instance of Catcher used for attaching all mocks to connection
 var Catcher *MockCatcher
 
