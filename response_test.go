@@ -236,7 +236,7 @@ func TestResponses(t *testing.T) {
 		}
 	})
 
-	t.Run(`Recognise both ? and $1 Postgres placeholders for raw query`, func(t *testing.T) {
+	t.Run("Recognise both ? and $1 Postgres placeholders for raw query", func(t *testing.T) {
 		t.Run("Question mark", func(t *testing.T) {
 			testFunc := func(db *sql.DB) string {
 				var name string
@@ -258,7 +258,7 @@ func TestResponses(t *testing.T) {
 		})
 	})
 
-	t.Run(`Triggered Times`, func(t *testing.T) {
+	t.Run("Triggered Times", func(t *testing.T) {
 		Catcher.Logging = true
 		fr := Catcher.Reset().NewMock().WithQuery(`SELECT name, age FROM users WHERE`).WithReply(commonReply).WithExpectedTriggerTimes(1)
 		t.Log("result", fr)
@@ -279,7 +279,7 @@ func TestResponses(t *testing.T) {
 		}
 	})
 
-	t.Run(`Capture all queries`, func(t *testing.T) {
+	t.Run("Capture all queries", func(t *testing.T) {
 		Catcher.Logging = true
 		Catcher.Reset().NewMock().WithQuery(`SELECT name, age FROM users WHERE`).WithReply(commonReply)
 		GetUsers(DB)
@@ -288,6 +288,18 @@ func TestResponses(t *testing.T) {
 		_, times := Catcher.FindReceivedQuery(expectedQuery)
 		if times != 2 {
 			t.Errorf(`The query "SELECT name, age FROM users WHERE age=27" should be sent twice`)
+		}
+	})
+
+	t.Run("Capture no matching queries", func(t *testing.T) {
+		Catcher.Logging = true
+		Catcher.Reset().NewMock().WithQuery(`SELECT name FROM users WHERE`).WithReply(commonReply)
+		GetUsers(DB)
+		GetUsers(DB)
+		expectedQuery := `SELECT name, age FROM users WHERE age=27`
+		_, times := Catcher.FindNoMatchingQuery(expectedQuery)
+		if times != 2 {
+			t.Errorf(`The query "SELECT name, age FROM users WHERE age=27" should not be matched`)
 		}
 	})
 

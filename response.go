@@ -30,6 +30,7 @@ var Catcher *MockCatcher
 type MockCatcher struct {
 	Mocks                []*FakeResponse // Slice of all mocks
 	ReceivedQueries      map[string]int  // All received queries
+	NoMatchingQueries    map[string]int  // All queries that didn't match any mock
 	Logging              bool            // Do we need to log what we catching?
 	PanicOnEmptyResponse bool            // If not response matches - do we need to panic?
 	mu                   sync.Mutex
@@ -64,9 +65,9 @@ func (mc *MockCatcher) Attach(fr []*FakeResponse) {
 func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *FakeResponse {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
-	new_query := normalize(query)
+	query = normalize(query)
 
-	query_with_args := completeStatement(new_query, args)
+	query_with_args := completeStatement(query, args)
 	if times, ok := mc.ReceivedQueries[query_with_args]; ok {
 		mc.ReceivedQueries[query_with_args] = times + 1
 	} else {
@@ -82,9 +83,9 @@ func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *Fak
 	})
 
 	for _, resp := range mc.Mocks {
-		if resp.IsMatch(new_query, args) {
+		if resp.IsMatch(query, args) {
 			if mc.Logging {
-				log.Printf("mock_catcher: [MATCHED QUERY]: %s matches mock {pattern: %s, args: %v}", new_query, resp.Pattern, resp.Args)
+				log.Printf("mock_catcher: [MATCHED QUERY]: %s matches mock {pattern: %s, args: %v}", query, resp.Pattern, resp.Args)
 			}
 			resp.MarkAsTriggered()
 			resp.TriggeredTimes++
@@ -92,12 +93,18 @@ func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *Fak
 		}
 	}
 
+	if times, ok := mc.NoMatchingQueries[query_with_args]; ok {
+		mc.NoMatchingQueries[query_with_args] = times + 1
+	} else {
+		mc.NoMatchingQueries[query_with_args] = 1
+	}
+
 	if mc.Logging {
-		log.Printf("mock_catcher: [NO MATCHED QUERY]: %s doesn't match anthing", new_query)
+		log.Printf("mock_catcher: [NO MATCHED QUERY]: %s doesn't match anything", query)
 	}
 
 	if mc.PanicOnEmptyResponse {
-		panic(fmt.Sprintf("No responses matches query %s ", new_query))
+		panic(fmt.Sprintf("No responses matches query %s ", query))
 	}
 
 	// Let's have always dummy version of response
@@ -143,12 +150,22 @@ func (mc *MockCatcher) FindReceivedQuery(query string) (ok bool, times int) {
 	}
 }
 
+// FindNoMatchingQuery checks how many times the query has not been matched
+func (mc *MockCatcher) FindNoMatchingQuery(query string) (ok bool, times int) {
+	if times, ok = mc.NoMatchingQueries[query]; ok {
+		return ok, times
+	} else {
+		return ok, 0
+	}
+}
+
 // Reset removes all Mocks to start process again
 func (mc *MockCatcher) Reset() *MockCatcher {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 	mc.Mocks = make([]*FakeResponse, 0)
 	mc.ReceivedQueries = make(map[string]int)
+	mc.NoMatchingQueries = make(map[string]int)
 	return mc
 }
 
@@ -323,6 +340,7 @@ func (fr *FakeResponse) WithMatchPriority(priority int) *FakeResponse {
 
 func init() {
 	Catcher = &MockCatcher{
-		ReceivedQueries: make(map[string]int),
+		ReceivedQueries:   make(map[string]int),
+		NoMatchingQueries: make(map[string]int),
 	}
 }
