@@ -20,10 +20,9 @@ func completeStatement(prepareStatment string, args []driver.NamedValue) (query 
 	if !strings.Contains(prepareStatment, "?") || len(args) == 0 {
 		return prepareStatment
 	}
-	// Replace all "?" to "%v" and replace them with the values after
 	for _, arg := range args {
-		prepareStatment = strings.Replace(prepareStatment, "?", "%v", 1)
-		prepareStatment = fmt.Sprintf(prepareStatment, arg.Value)
+		value := fmt.Sprintf("%v", arg.Value)
+		prepareStatment = strings.Replace(prepareStatment, "?", value, 1)
 	}
 	return prepareStatment
 }
