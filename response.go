@@ -100,11 +100,11 @@ func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *Fak
 	}
 
 	if mc.Logging {
-		log.Printf("mock_catcher: [NO MATCHED QUERY]: %s doesn't match anything", query)
+		log.Printf("mock_catcher: [NO MATCHED QUERY]: %s doesn't match anything", query_with_args)
 	}
 
 	if mc.PanicOnEmptyResponse {
-		panic(fmt.Sprintf("No responses matches query %s ", query))
+		panic(fmt.Sprintf("No responses matches query %s ", query_with_args))
 	}
 
 	// Let's have always dummy version of response
