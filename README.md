@@ -2,10 +2,13 @@
 
 # Go-Mocket – Go GORM & SQL Mocking Library
 
+**This is a fork of Selvatico/go-mocket, but all the changes are not going to be merged, because the upstream project is not maintained anymore.**
+
 Go-Mocket is a library inspired by [DATA-DOG/go-sqlmock](https://github.com/DATA-DOG/go-sqlmock).
 
 As an inspiration library, it is the implementation of [sql/driver](https://godoc.org/database/sql/driver) interface but at the same time it follows a different approach and only has a similar API.
-This library helps to mock any DB connection with [jinzhu/gorm](https://github.com/jinzhu/gorm), as it was the created to serve this purpose.
+
+This library helps to mock any DB connection with [jinzhu/gorm](https://github.com/jinzhu/gorm) and [gorm.io/gorm](gorm.io/gorm), as it was the created to serve this purpose.
 
 List of features in the library:
 
@@ -16,6 +19,9 @@ List of features in the library:
 * You don't require to change anything inside your code to start using this library
 * Ability to trigger exceptions
 * Attach callbacks to mocked responses to add an additional check or modify a response
+* Support checking triggeered times
+* Support matching priority
+* Support checking received queries and no matching queries
 
 **NOTE**, Please be aware that driver catches SQL without DB specifics. Generation of queries is done by *SQL* package
 
@@ -27,7 +33,7 @@ go get github.com/Selvatico/go-mocket
 
 ## Documentation
 
-For detailed usage and examples, look at the [Documentation](/DOCUMENTATION.md)
+For detailed usage and examples, look at the [Documentation](/DOCUMENTATION.md), and the unit tests.
 
 ## License
 

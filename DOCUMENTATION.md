@@ -29,6 +29,18 @@ func SetupTests() *sql.DB { // or *gorm.DB
 
 In the snippet above, we intentionally skipped assigning to proper variable DB instance. One of the assumptions is that the project has one DB instance at the time, overriding it with FakeDriver will do the job.
 
+## Use with gorm v2
+
+```go
+import "database/sql"
+import "gorm.io/gorm"
+conn, _ := sql.Open(mocket.DriverName, "mockdsn")
+db, err = gorm.Open(mysql.New(mysql.Config{
+		Conn:                      conn,
+		SkipInitializeWithVersion: true,
+}))
+```
+
 ## Usage
 
 ***
