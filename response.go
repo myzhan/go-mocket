@@ -85,7 +85,7 @@ func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *Fak
 	for _, resp := range mc.Mocks {
 		if resp.IsMatch(query, args) {
 			if mc.Logging {
-				log.Printf("mock_catcher: [MATCHED QUERY]: %s matches mock {pattern: %s, args: %v}", query, resp.Pattern, resp.Args)
+				log.Printf("mock_catcher: [MATCHED QUERY]: %s matches mock {pattern: %s, args: %v}", query_with_args, resp.Pattern, resp.Args)
 			}
 			resp.MarkAsTriggered()
 			resp.TriggeredTimes++
