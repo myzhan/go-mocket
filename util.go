@@ -21,8 +21,18 @@ func completeStatement(prepareStatment string, args []driver.NamedValue) (query 
 		return prepareStatment
 	}
 	for _, arg := range args {
-		value := fmt.Sprintf("%v", arg.Value)
-		prepareStatment = strings.Replace(prepareStatment, "?", value, 1)
+		var value string
+		switch arg.Value.(type) {
+		case int, int32, int64, uint, uint32, uint64:
+			value = fmt.Sprintf("%d", arg.Value)
+		case string:
+			value = fmt.Sprintf("%s", arg.Value)
+		case []byte:
+			value = fmt.Sprintf("%s", arg.Value)
+		default:
+			value = fmt.Sprintf("%v", arg.Value)
+		}
+		prepareStatment = strings.Replace(prepareStatment, "?", value, -1)
 	}
 	return prepareStatment
 }
