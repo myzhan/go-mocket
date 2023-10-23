@@ -32,7 +32,7 @@ func completeStatement(prepareStatment string, args []driver.NamedValue) (query 
 		default:
 			value = fmt.Sprintf("%v", arg.Value)
 		}
-		prepareStatment = strings.Replace(prepareStatment, "?", value, -1)
+		prepareStatment = strings.Replace(prepareStatment, "?", value, 1)
 	}
 	return prepareStatment
 }
