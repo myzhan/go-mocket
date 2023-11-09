@@ -75,8 +75,8 @@ func TestResponses(t *testing.T) {
 	commonReply2 := []map[string]interface{}{{"name": "FirstLast", "age": "50"}}
 
 	multiReply := []map[string]interface{}{
-		{"name": "FirstLast", "age": "50"},
 		{"name": "FirstLast"},
+		{"name": "FirstLast", "age": "50"},
 	}
 
 	t.Run("Simple SELECT caught by query", func(t *testing.T) {
@@ -315,11 +315,12 @@ func TestResponses(t *testing.T) {
 		if len(result) != 2 {
 			t.Fatalf("Returned sets is not equal to 2. Received %d", len(result))
 		}
-		if result[0]["name"] != "FirstLast" {
-			t.Errorf("Name is not equal. Got %v", result[0]["name"])
+
+		if result[0]["age"] != "" {
+			t.Errorf("age is not empty. Got %v", result[0]["age"])
 		}
-		if result[1]["age"] != "" {
-			t.Errorf("age is not empty. Got %v", result[1]["age"])
+		if result[1]["name"] != "FirstLast" {
+			t.Errorf("Name is not equal. Got %v", result[1]["name"])
 		}
 	})
 
