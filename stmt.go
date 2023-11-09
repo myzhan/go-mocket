@@ -128,11 +128,17 @@ func (s *FakeStmt) QueryContext(ctx context.Context, args []driver.NamedValue) (
 	// Check if we have such query in the map
 	colIndexes := make(map[string]int)
 
-	// Collecting column names from first record
+	// Collecting column names from all records
 	if len(fResp.Response) > 0 {
-		for colName := range fResp.Response[0] {
-			colIndexes[colName] = len(columnNames)
-			columnNames = append(columnNames, colName)
+		for _, resp := range fResp.Response {
+			for colName := range resp {
+				if _, ok := colIndexes[colName]; ok {
+					continue
+				} else {
+					colIndexes[colName] = len(columnNames)
+					columnNames = append(columnNames, colName)
+				}
+			}
 		}
 	}
 

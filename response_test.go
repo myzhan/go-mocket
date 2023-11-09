@@ -10,15 +10,14 @@ var DB *sql.DB
 
 func GetUsers(db *sql.DB) []map[string]string {
 	var res []map[string]string
-	age := 27
-	rows, err := db.Query("SELECT name, age FROM users  WHERE age=?", age)
+	rows, err := db.Query("SELECT name, age FROM users  WHERE age=?", 27)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var name string
-		var age string
+		var name sql.NullString
+		var age sql.NullString
 		var colsInResult string
 		resultColumns, _ := rows.Columns()
 		for i, col := range resultColumns {
@@ -38,7 +37,7 @@ func GetUsers(db *sql.DB) []map[string]string {
 				log.Fatal(err)
 			}
 		}
-		row := map[string]string{"name": name, "age": age}
+		row := map[string]string{"name": name.String, "age": age.String}
 		res = append(res, row)
 	}
 	if err := rows.Err(); err != nil {
@@ -74,6 +73,11 @@ func TestResponses(t *testing.T) {
 	DB = db
 	commonReply := []map[string]interface{}{{"name": "FirstLast", "age": "30"}}
 	commonReply2 := []map[string]interface{}{{"name": "FirstLast", "age": "50"}}
+
+	multiReply := []map[string]interface{}{
+		{"name": "FirstLast", "age": "50"},
+		{"name": "FirstLast"},
+	}
 
 	t.Run("Simple SELECT caught by query", func(t *testing.T) {
 		Catcher.Logging = true
@@ -300,6 +304,22 @@ func TestResponses(t *testing.T) {
 		_, times := Catcher.FindNoMatchingQuery(expectedQuery)
 		if times != 2 {
 			t.Errorf(`The query "SELECT name, age FROM users WHERE age=27" should not be matched`)
+		}
+	})
+
+	t.Run("Multi response", func(t *testing.T) {
+		fr := Catcher.Reset().NewMock().WithQuery(`SELECT name, age FROM users WHERE`).WithReply(multiReply)
+		t.Log("result", fr)
+		result := GetUsers(DB)
+		t.Log("result", result)
+		if len(result) != 2 {
+			t.Fatalf("Returned sets is not equal to 2. Received %d", len(result))
+		}
+		if result[0]["name"] != "FirstLast" {
+			t.Errorf("Name is not equal. Got %v", result[0]["name"])
+		}
+		if result[1]["age"] != "" {
+			t.Errorf("age is not empty. Got %v", result[1]["age"])
 		}
 	})
 
