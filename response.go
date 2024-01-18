@@ -28,12 +28,14 @@ var Catcher *MockCatcher
 
 // MockCatcher is global entity to save all mocks aka FakeResponses
 type MockCatcher struct {
-	Mocks                []*FakeResponse // Slice of all mocks
-	ReceivedQueries      map[string]int  // All received queries
-	NoMatchingQueries    map[string]int  // All queries that didn't match any mock
-	Logging              bool            // Do we need to log what we catching?
-	PanicOnEmptyResponse bool            // If not response matches - do we need to panic?
-	mu                   sync.Mutex
+	Mocks                   []*FakeResponse // Slice of all mocks
+	ReceivedQueries         map[string]int  // All received queries
+	ReceivedQueriesRWLock   sync.RWMutex
+	NoMatchingQueries       map[string]int // All queries that didn't match any mock
+	NoMatchingQueriesRWLock sync.RWMutex
+	Logging                 bool // Do we need to log what we catching?
+	PanicOnEmptyResponse    bool // If not response matches - do we need to panic?
+	mu                      sync.Mutex
 }
 
 func (mc *MockCatcher) SetLogging(l bool) {
@@ -68,11 +70,14 @@ func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *Fak
 	query = normalize(query)
 
 	query_with_args := completeStatement(query, args)
+
+	mc.ReceivedQueriesRWLock.Lock()
 	if times, ok := mc.ReceivedQueries[query_with_args]; ok {
 		mc.ReceivedQueries[query_with_args] = times + 1
 	} else {
 		mc.ReceivedQueries[query_with_args] = 1
 	}
+	mc.ReceivedQueriesRWLock.Unlock()
 
 	sort.SliceStable(mc.Mocks, func(i, j int) bool {
 		if mc.Mocks[i].MatchPriority != mc.Mocks[j].MatchPriority {
@@ -93,11 +98,13 @@ func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *Fak
 		}
 	}
 
+	mc.NoMatchingQueriesRWLock.Lock()
 	if times, ok := mc.NoMatchingQueries[query_with_args]; ok {
 		mc.NoMatchingQueries[query_with_args] = times + 1
 	} else {
 		mc.NoMatchingQueries[query_with_args] = 1
 	}
+	mc.NoMatchingQueriesRWLock.Unlock()
 
 	if mc.Logging {
 		log.Printf("mock_catcher: [NO MATCHED QUERY]: %s doesn't match anything", query_with_args)
@@ -143,6 +150,8 @@ func (mc *MockCatcher) ExpectationOfTriggeredTimesIsMeet() (bool, []string) {
 
 // FindReceivedQuery checks how many times the query has been sent
 func (mc *MockCatcher) FindReceivedQuery(query string) (ok bool, times int) {
+	mc.ReceivedQueriesRWLock.RLock()
+	defer mc.ReceivedQueriesRWLock.RUnlock()
 	if times, ok = mc.ReceivedQueries[query]; ok {
 		return ok, times
 	} else {
@@ -152,6 +161,8 @@ func (mc *MockCatcher) FindReceivedQuery(query string) (ok bool, times int) {
 
 // FindNoMatchingQuery checks how many times the query has not been matched
 func (mc *MockCatcher) FindNoMatchingQuery(query string) (ok bool, times int) {
+	mc.NoMatchingQueriesRWLock.RLock()
+	defer mc.NoMatchingQueriesRWLock.RUnlock()
 	if times, ok = mc.NoMatchingQueries[query]; ok {
 		return ok, times
 	} else {
