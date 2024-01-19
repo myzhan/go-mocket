@@ -3,6 +3,7 @@ package gomocket
 import (
 	"database/sql/driver"
 	"log"
+	"strings"
 	"sync"
 )
 
@@ -45,7 +46,17 @@ func (t *table) columnIndex(name string) int {
 
 // Open returns a new connection to the database.
 func (d *FakeDriver) Open(database string) (driver.Conn, error) {
-	return &FakeConn{db: d.getDB(database)}, nil
+	if strings.Contains(database, "readOnly") {
+		return &FakeConn{
+			db:       d.getDB(database),
+			readOnly: true,
+		}, nil
+	} else {
+		return &FakeConn{
+			db:       d.getDB(database),
+			readOnly: false,
+		}, nil
+	}
 }
 
 func (d *FakeDriver) getDB(name string) *FakeDB {

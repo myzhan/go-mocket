@@ -7,6 +7,7 @@ import (
 )
 
 var DB *sql.DB
+var ReadOnlyDB *sql.DB
 
 func GetUsers(db *sql.DB) []map[string]string {
 	var res []map[string]string
@@ -324,4 +325,19 @@ func TestResponses(t *testing.T) {
 		}
 	})
 
+}
+
+func TestReadOnlyDB(t *testing.T) {
+	Catcher.Register()
+	db, _ := sql.Open(DriverName, "readOnly") // Could be any connection string
+	ReadOnlyDB = db
+
+	t.Run("Can't write to read only DB", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("Writting to read only DB should panic")
+			}
+		}()
+		InsertRecord(ReadOnlyDB)
+	})
 }

@@ -12,10 +12,11 @@ import (
 
 // FakeConn implements connection
 type FakeConn struct {
-	db     *FakeDB
-	currTx *FakeTx // Transaction pointer
-	mu     sync.Mutex
-	bad    bool
+	db       *FakeDB
+	currTx   *FakeTx // Transaction pointer
+	mu       sync.Mutex
+	bad      bool
+	readOnly bool // This connection is read only
 }
 
 func (c *FakeConn) isBad() bool {

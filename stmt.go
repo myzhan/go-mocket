@@ -61,6 +61,10 @@ func (s *FakeStmt) ExecContext(ctx context.Context, args []driver.NamedValue) (d
 		return nil, errClosed
 	}
 
+	if s.connection.readOnly {
+		panic("writting to read only connection")
+	}
+
 	fResp := Catcher.FindResponse(s.q, args)
 
 	// To emulate any exception during query which returns rows
