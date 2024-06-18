@@ -35,7 +35,7 @@ type MockCatcher struct {
 	NoMatchingQueriesRWLock sync.RWMutex
 	Logging                 bool // Do we need to log what we catching?
 	PanicOnEmptyResponse    bool // If not response matches - do we need to panic?
-	mu                      sync.Mutex
+	mu                      sync.RWMutex
 }
 
 func (mc *MockCatcher) SetLogging(l bool) {
@@ -80,6 +80,10 @@ func (mc *MockCatcher) FindResponse(query string, args []driver.NamedValue) *Fak
 	mc.ReceivedQueriesRWLock.Unlock()
 
 	sort.SliceStable(mc.Mocks, func(i, j int) bool {
+		mc.Mocks[i].mu.RLock()
+		mc.Mocks[j].mu.RLock()
+		defer mc.Mocks[i].mu.RUnlock()
+		defer mc.Mocks[j].mu.RUnlock()
 		if mc.Mocks[i].MatchPriority != mc.Mocks[j].MatchPriority {
 			return mc.Mocks[i].MatchPriority > mc.Mocks[j].MatchPriority
 		} else {
@@ -201,7 +205,7 @@ type FakeResponse struct {
 	RowsAffected           int64                             // Defines affected rows count
 	LastInsertID           int64                             // ID to be returned for INSERT queries
 	Error                  error                             // Any type of error which could happen dur
-	mu                     sync.Mutex                        // Used to lock concurrent access to variables
+	mu                     sync.RWMutex                      // Used to lock concurrent access to variables
 	*Exceptions
 }
 
@@ -227,11 +231,11 @@ func (fr *FakeResponse) isQueryMatch(query string) bool {
 		return true
 	}
 
-	if fr.Strict == true && query == fr.Pattern {
+	if fr.Strict && query == fr.Pattern {
 		return true
 	}
 
-	if fr.Strict == false && strings.Contains(query, fr.Pattern) {
+	if !fr.Strict && strings.Contains(query, fr.Pattern) {
 		return true
 	}
 
@@ -266,17 +270,19 @@ func (fr *FakeResponse) WithQuery(query string) *FakeResponse {
 
 // WithQuery adds SQL query pattern to match for
 func (fr *FakeResponse) StrictMatch() *FakeResponse {
+	fr.mu.Lock()
+	defer fr.mu.Unlock()
 	fr.Strict = true
 	return fr
 }
 
 // WithArgs attaches Args check for prepared statements
 func (fr *FakeResponse) WithArgs(vars ...interface{}) *FakeResponse {
+	fr.mu.Lock()
+	defer fr.mu.Unlock()
 	if len(vars) > 0 {
 		fr.Args = make([]interface{}, len(vars))
-		for index, v := range vars {
-			fr.Args[index] = v
-		}
+		copy(fr.Args, vars)
 	}
 	return fr
 }
@@ -291,6 +297,8 @@ func (fr *FakeResponse) WithReply(response []map[string]interface{}) *FakeRespon
 
 // OneTime sets current mock to be triggered only once
 func (fr *FakeResponse) OneTime() *FakeResponse {
+	fr.mu.Lock()
+	defer fr.mu.Unlock()
 	fr.Once = true
 	return fr
 }
