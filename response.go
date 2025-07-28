@@ -57,6 +57,8 @@ func (mc *MockCatcher) Register() {
 
 // Attach several mocks to MockCather. Could be useful to attach mocks from some factories of mocks
 func (mc *MockCatcher) Attach(fr []*FakeResponse) {
+	mc.mu.Lock()
+	defer mc.mu.Unlock()
 	for _, r := range fr {
 		r.Pattern = normalize(r.Pattern)
 		mc.Mocks = append(mc.Mocks, r)
